@@ -1,56 +1,56 @@
-import  re
+import re
 
 def analyze_log(log_file):
-    """ Analyzes an SSH authentication log file for failed login attempts.      """
+    """Analyzes an SSH authentication log file for failed and successful login attempts."""
     print(f"Analyzing log file: {log_file}...\n")
 
-    failed_login_counts = {} 
+    failed_login_counts = {}
+    successful_login_counts = {}
 
-   # This regular expression will match most standard IPv4 addresses.
-    # The 'r' before the string means it's a "raw string", which is best practice for regex.
-    ip_pattern = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+    ip_pattern = r"\d{1,3}(?:\.\d{1,3}){3}"
 
     try:
-      # Open the log file in read mode ('r')
         with open(log_file, 'r') as f:
             for line in f:
-            # Check if the substring "Failed password" exists in the line
-             if "Failed password" in line:
+                match = re.search(ip_pattern, line)
+                if not match:
+                    continue
 
-              # Now, search within that line for our IP address pattern
-               match = re.search(ip_pattern, line)
+                ip_address = match.group(0)
 
-                 # If the search was successful, 'match' will be an object
-               if match:
-                 # Extract the matched string (the IP address)
-                   ip_address = match.group(0)
-                 
-                   if ip_address in failed_login_counts:
-                       failed_login_counts[ip_address] += 1
-                   else:
-                       failed_login_counts[ip_address] = 1
-                   
+                if "Failed password" in line:
+                    failed_login_counts[ip_address] = failed_login_counts.get(ip_address, 0) + 1
+
+                elif "Accepted password" in line:
+                    successful_login_counts[ip_address] = successful_login_counts.get(ip_address, 0) + 1
 
     except FileNotFoundError:
-      # Handle the case where the log file does not exist 
-      print(f"Error: File not found at '{log_file}'")
-      return
+        print(f"Error: File not found at '{log_file}'")
+        return
 
     print("\n--- Security Analysis Report ---")
 
     if not failed_login_counts:
-       print("No failed login attempts found.")
+        print("No failed login attempts found.")
     else:
-       print("Summary of failed login attempts by IP address:")
-       sorted_ips = sorted(failed_login_counts.items(), key=lambda x: x[1], reverse=True)
+        print("Summary of failed login attempts by IP address:")
+        sorted_failed = sorted(failed_login_counts.items(), key=lambda x: x[1], reverse=True)
+        for ip, count in sorted_failed:
+            print(f"- IP Address: {ip:<18} Failed Count: {count}")
 
-       for ip, count in sorted_ips:
-           print(f"- IP Address: {ip:<18} Count: {count}")
+    print()
+
+    if not successful_login_counts:
+        print("No successful login attempts found.")
+    else:
+        print("Summary of successful login attempts by IP address:")
+        sorted_successful = sorted(successful_login_counts.items(), key=lambda x: x[1], reverse=True)
+        for ip, count in sorted_successful:
+            print(f"- IP Address: {ip:<18} Success Count: {count}")
 
     print("\n--- End of Report ---")
 
-# This block ensures the code inside only runs when the script is executed directly
+
 if __name__ == "__main__":
-  log_file_path = "auth.log"
-  analyze_log(log_file_path)
-                      
+    log_file_path = "auth.log"
+    analyze_log(log_file_path)
