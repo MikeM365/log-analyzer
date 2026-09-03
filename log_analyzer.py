@@ -21,7 +21,7 @@ def analyze_log(log_file):
                 if "Failed password" in line:
                     failed_login_counts[ip_address] = failed_login_counts.get(ip_address, 0) + 1
 
-                elif "Accepted password" in line:
+                elif "session opened for user" in line:
                     successful_login_counts[ip_address] = successful_login_counts.get(ip_address, 0) + 1
 
     except FileNotFoundError:
